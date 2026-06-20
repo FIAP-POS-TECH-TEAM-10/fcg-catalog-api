@@ -1,5 +1,3 @@
-using FCGames.IntegrationEvents;
-using Fiap.FCGames.Catalogo.Application.Consumers;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,10 +10,7 @@ public static class MassTransitExtensions
     {
         services.AddMassTransit(x =>
         {
-            x.AddConsumer<UsuarioCriadoEventoConsumer>();
-            x.AddConsumer<PagamentoProcessadoEventoConsumer>();
-
-            x.UsingRabbitMq((ctx, cfg) =>
+            x.UsingRabbitMq((_, cfg) =>
             {
                 var host = configuration["RabbitMQ:Host"] ?? "localhost";
                 var username = configuration["RabbitMQ:Username"] ?? "guest";
@@ -25,16 +20,6 @@ public static class MassTransitExtensions
                 {
                     h.Username(username);
                     h.Password(password);
-                });
-
-                cfg.ReceiveEndpoint("catalog-usuario-criado", e =>
-                {
-                    e.ConfigureConsumer<UsuarioCriadoEventoConsumer>(ctx);
-                });
-
-                cfg.ReceiveEndpoint("catalog-pagamento-processado", e =>
-                {
-                    e.ConfigureConsumer<PagamentoProcessadoEventoConsumer>(ctx);
                 });
             });
         });

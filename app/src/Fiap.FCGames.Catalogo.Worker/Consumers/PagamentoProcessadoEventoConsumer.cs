@@ -5,7 +5,7 @@ using Fiap.FCGames.Catalogo.Infra.DataProvider.Interface;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
-namespace Fiap.FCGames.Catalogo.Application.Consumers;
+namespace Fiap.FCGames.Catalogo.Worker.Consumers;
 
 public class PagamentoProcessadoEventoConsumer : IConsumer<PagamentoProcessadoEvento>
 {
@@ -25,14 +25,13 @@ public class PagamentoProcessadoEventoConsumer : IConsumer<PagamentoProcessadoEv
         var pedido = await _uow.PedidoRepository.ObterPorIdAsync(evt.PedidoId);
         if (pedido is null)
         {
-            _logger.LogWarning("PedidoId {PedidoId} não encontrado no CatalogAPI — ignorando evento", evt.PedidoId);
+            _logger.LogWarning("PedidoId {PedidoId} não encontrado — ignorando", evt.PedidoId);
             return;
         }
 
         if (pedido.Status != StatusPedido.Pendente)
         {
-            _logger.LogInformation("PedidoId {PedidoId} já processado com status {Status} — ignorando (idempotente)",
-                evt.PedidoId, pedido.Status);
+            _logger.LogInformation("PedidoId {PedidoId} já em status {Status} — idempotente", evt.PedidoId, pedido.Status);
             return;
         }
 
@@ -54,23 +53,18 @@ public class PagamentoProcessadoEventoConsumer : IConsumer<PagamentoProcessadoEv
             }
             else
             {
-                _logger.LogWarning("Biblioteca não encontrada para UsuarioId {UsuarioId} ao aprovar PedidoId {PedidoId}",
-                    evt.UsuarioId, evt.PedidoId);
+                _logger.LogWarning("Biblioteca não encontrada para UsuarioId {UsuarioId} — jogo não adicionado", evt.UsuarioId);
             }
 
             await _uow.CommitAsync(context.CancellationToken);
-
-            _logger.LogInformation("Pedido {PedidoId} aprovado. Jogo {NomeJogo} adicionado à biblioteca do usuário {UsuarioId}",
-                evt.PedidoId, evt.NomeJogo, evt.UsuarioId);
+            _logger.LogInformation("Pedido {PedidoId} aprovado. Jogo {NomeJogo} adicionado à biblioteca", evt.PedidoId, evt.NomeJogo);
         }
         else
         {
             pedido.Status = StatusPedido.Rejeitado;
             _uow.PedidoRepository.Atualizar(pedido);
             await _uow.CommitAsync(context.CancellationToken);
-
-            _logger.LogInformation("Pedido {PedidoId} rejeitado. Motivo: {Motivo}",
-                evt.PedidoId, evt.Motivo ?? "não informado");
+            _logger.LogInformation("Pedido {PedidoId} rejeitado. Motivo: {Motivo}", evt.PedidoId, evt.Motivo ?? "não informado");
         }
     }
 }

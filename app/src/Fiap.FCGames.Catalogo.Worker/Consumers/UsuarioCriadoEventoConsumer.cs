@@ -4,7 +4,7 @@ using Fiap.FCGames.Catalogo.Infra.DataProvider.Interface;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 
-namespace Fiap.FCGames.Catalogo.Application.Consumers;
+namespace Fiap.FCGames.Catalogo.Worker.Consumers;
 
 public class UsuarioCriadoEventoConsumer : IConsumer<UsuarioCriadoEvento>
 {
@@ -24,18 +24,17 @@ public class UsuarioCriadoEventoConsumer : IConsumer<UsuarioCriadoEvento>
         var existe = await _uow.BibliotecaRepository.ObterPorUsuarioIdAsync(evt.UsuarioId);
         if (existe is not null)
         {
-            _logger.LogInformation("Biblioteca já existe para UsuarioId {UsuarioId} — ignorando (idempotente)", evt.UsuarioId);
+            _logger.LogInformation("Biblioteca já existe para UsuarioId {UsuarioId} — idempotente", evt.UsuarioId);
             return;
         }
 
-        var biblioteca = new Biblioteca
+        _uow.BibliotecaRepository.Adicionar(new Biblioteca
         {
             Id = Guid.NewGuid(),
             UsuarioId = evt.UsuarioId,
             CriadaEm = DateTime.UtcNow
-        };
+        });
 
-        _uow.BibliotecaRepository.Adicionar(biblioteca);
         await _uow.CommitAsync(context.CancellationToken);
 
         _logger.LogInformation("Biblioteca criada para UsuarioId {UsuarioId} CorrelationId {CorrelationId}",
