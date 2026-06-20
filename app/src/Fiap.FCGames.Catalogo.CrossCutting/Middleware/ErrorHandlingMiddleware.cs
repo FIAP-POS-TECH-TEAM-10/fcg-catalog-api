@@ -107,6 +107,23 @@ namespace Fiap.FCGames.Catalogo.CrossCutting.Middleware
                 }));
             }
 
+            if (exception is ConflictException ce)
+            {
+                _logger.LogWarning(ce, "Conflito detectado na requisição");
+                context.Response.StatusCode = (int)HttpStatusCode.Conflict;
+
+                var errorResponse = new ErrorResponse
+                {
+                    StatusCode = (int)HttpStatusCode.Conflict,
+                    Message = ce.Message
+                };
+
+                return context.Response.WriteAsync(JsonSerializer.Serialize(errorResponse, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                }));
+            }
+
             _logger.LogError(exception, "Ocorreu um erro não tratado na requisição: {Message}", exception.Message);
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
