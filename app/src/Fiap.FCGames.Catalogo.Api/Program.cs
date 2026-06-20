@@ -1,6 +1,7 @@
 using Fiap.FCGames.Catalogo.CrossCutting.Extensions;
 using Fiap.FCGames.Catalogo.CrossCutting.Middleware;
 using Fiap.FCGames.Catalogo.Infra.DataProvider.Contexto;
+using Fiap.FCGames.Catalogo.Infra.DataProvider.Seed;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -25,6 +26,8 @@ builder.Services.AddAutorizacaoApi();
 
 builder.Services.AddContextDatabase(builder.Configuration);
 
+builder.Services.AddHealthChecks();
+
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)  
     .Enrich.FromLogContext()
@@ -40,6 +43,7 @@ if (!app.Environment.IsEnvironment("Testing"))
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<FcGamesContexto>();
     dbContext.Database.Migrate();
+    await SeedData.SeedJogosAsync(dbContext);
 }
 
 app.UseCorrelationId();
@@ -59,5 +63,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
-app.Run();
+await app.RunAsync();
