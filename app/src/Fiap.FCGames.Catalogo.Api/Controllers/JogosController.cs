@@ -29,7 +29,7 @@ public class JogosController : ApiControllerBase<JogosController>
     public async Task<IActionResult> CriarAsync([FromBody] CriarJogoCommand command, CancellationToken cancellationToken)
     {
         var result = await _sender.Send(command, cancellationToken);
-        return CreatedAtAction(nameof(ListarAsync), new { id = result.Id }, result);
+        return Created($"/jogos/{result.Id}", result);
     }
 
     [HttpPut("{id:guid}")]
