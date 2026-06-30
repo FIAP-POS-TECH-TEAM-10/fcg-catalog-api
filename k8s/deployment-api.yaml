@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-api
+  namespace: fcgames
+  labels:
+    app: catalog-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog-api
+  template:
+    metadata:
+      labels:
+        app: catalog-api
+    spec:
+      containers:
+      - name: catalog-api
+        image: fcg-catalog-api:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5002
+          name: http
+        env:
+        - name: ASPNETCORE_URLS
+          valueFrom:
+            configMapKeyRef:
+              name: catalog-api-config
+              key: aspnetcore-urls
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: catalog-api-secret
+              key: db-connection
+        - name: RabbitMQ__Host
+          valueFrom:
+            configMapKeyRef:
+              name: catalog-api-config
+              key: rabbitmq-host
+        - name: RabbitMQ__Username
+          valueFrom:
+            secretKeyRef:
+              name: catalog-api-secret
+              key: rabbitmq-username
+        - name: RabbitMQ__Password
+          valueFrom:
+            secretKeyRef:
+              name: catalog-api-secret
+              key: rabbitmq-password
+        - name: JWT__KEY
+          valueFrom:
+            secretKeyRef:
+              name: catalog-api-secret
+              key: jwt-key
+        - name: JWT__ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: catalog-api-config
+              key: jwt-issuer
+        volumeMounts:
+        - name: catalog-data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5002
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5002
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: catalog-data
+        persistentVolumeClaim:
+          claimName: catalog-api-pvc

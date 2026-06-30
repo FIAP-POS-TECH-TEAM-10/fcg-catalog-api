@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-worker
+  namespace: fcgames
+  labels:
+    app: catalog-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog-worker
+  template:
+    metadata:
+      labels:
+        app: catalog-worker
+    spec:
+      containers:
+      - name: catalog-worker
+        image: fcg-catalog-worker:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: catalog-api-secret
+              key: db-connection
+        - name: RabbitMQ__Host
+          valueFrom:
+            configMapKeyRef:
+              name: catalog-api-config
+              key: rabbitmq-host
+        - name: RabbitMQ__Username
+          valueFrom:
+            secretKeyRef:
+              name: catalog-api-secret
+              key: rabbitmq-username
+        - name: RabbitMQ__Password
+          valueFrom:
+            secretKeyRef:
+              name: catalog-api-secret
+              key: rabbitmq-password
+        volumeMounts:
+        - name: catalog-data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: catalog-data
+        persistentVolumeClaim:
+          claimName: catalog-api-pvc
