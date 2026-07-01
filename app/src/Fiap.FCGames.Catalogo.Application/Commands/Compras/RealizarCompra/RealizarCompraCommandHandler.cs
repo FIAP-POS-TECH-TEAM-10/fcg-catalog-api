@@ -5,7 +5,6 @@ using Fiap.FCGames.Catalogo.Domain.Exception;
 using Fiap.FCGames.Catalogo.Infra.DataProvider.Interface;
 using MassTransit;
 using MediatR;
-using Microsoft.Extensions.Logging;
 
 namespace Fiap.FCGames.Catalogo.Application.Commands.Compras.RealizarCompra;
 
@@ -13,13 +12,11 @@ public class RealizarCompraCommandHandler : IRequestHandler<RealizarCompraComman
 {
     private readonly IUnitOfWork _uow;
     private readonly IPublishEndpoint _publisher;
-    private readonly ILogger<RealizarCompraCommandHandler> _logger;
 
-    public RealizarCompraCommandHandler(IUnitOfWork uow, IPublishEndpoint publisher, ILogger<RealizarCompraCommandHandler> logger)
+    public RealizarCompraCommandHandler(IUnitOfWork uow, IPublishEndpoint publisher)
     {
         _uow = uow;
         _publisher = publisher;
-        _logger = logger;
     }
 
     public async Task<RealizarCompraResponse> Handle(RealizarCompraCommand request, CancellationToken cancellationToken)
@@ -43,24 +40,18 @@ public class RealizarCompraCommandHandler : IRequestHandler<RealizarCompraComman
         };
 
         _uow.PedidoRepository.Adicionar(pedido);
-        await _uow.CommitAsync(cancellationToken);
 
-        try
-        {
-            await _publisher.Publish(new PedidoRealizadoEvento(
-                PedidoId: pedido.Id,
-                UsuarioId: pedido.UsuarioId,
-                JogoId: jogo.Id,
-                NomeJogo: jogo.Nome,
-                Preco: jogo.Preco,
-                RealizadoEmUtc: pedido.CriadoEm,
-                CorrelationId: correlationId
-            ), cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Falha ao publicar PedidoRealizadoEvento para PedidoId {PedidoId}. Pedido já foi persistido.", pedido.Id);
-        }
+        await _publisher.Publish(new PedidoRealizadoEvento(
+            PedidoId: pedido.Id,
+            UsuarioId: pedido.UsuarioId,
+            JogoId: jogo.Id,
+            NomeJogo: jogo.Nome,
+            Preco: jogo.Preco,
+            RealizadoEmUtc: pedido.CriadoEm,
+            CorrelationId: correlationId
+        ), cancellationToken);
+
+        await _uow.CommitAsync(cancellationToken);
 
         return new RealizarCompraResponse(pedido.Id, jogo.Id, jogo.Nome, jogo.Preco, pedido.Status.ToString());
     }

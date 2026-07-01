@@ -1,3 +1,4 @@
+using Fiap.FCGames.Catalogo.Infra.DataProvider.Contexto;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +11,12 @@ public static class MassTransitExtensions
     {
         services.AddMassTransit(x =>
         {
+            x.AddEntityFrameworkOutbox<FcGamesContexto>(o =>
+            {
+                o.UseSqlite();
+                o.UseBusOutbox();
+            });
+
             x.UsingRabbitMq((_, cfg) =>
             {
                 var host = configuration["RabbitMQ:Host"] ?? "localhost";

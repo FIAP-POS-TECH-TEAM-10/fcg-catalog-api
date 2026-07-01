@@ -23,6 +23,11 @@ builder.Services.AddMassTransit(x =>
     x.AddConsumer<UsuarioCriadoEventoConsumer>();
     x.AddConsumer<PagamentoProcessadoEventoConsumer>();
 
+    x.AddEntityFrameworkOutbox<FcGamesContexto>(o =>
+    {
+        o.UseSqlite();
+    });
+
     x.UsingRabbitMq((ctx, cfg) =>
     {
         var host = builder.Configuration["RabbitMQ:Host"] ?? "localhost";
@@ -37,11 +42,13 @@ builder.Services.AddMassTransit(x =>
 
         cfg.ReceiveEndpoint("catalog-usuario-criado", e =>
         {
+            e.UseEntityFrameworkOutbox<FcGamesContexto>(ctx);
             e.ConfigureConsumer<UsuarioCriadoEventoConsumer>(ctx);
         });
 
         cfg.ReceiveEndpoint("catalog-pagamento-processado", e =>
         {
+            e.UseEntityFrameworkOutbox<FcGamesContexto>(ctx);
             e.ConfigureConsumer<PagamentoProcessadoEventoConsumer>(ctx);
         });
     });
