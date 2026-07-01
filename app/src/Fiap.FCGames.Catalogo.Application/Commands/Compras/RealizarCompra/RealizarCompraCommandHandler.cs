@@ -43,24 +43,18 @@ public class RealizarCompraCommandHandler : IRequestHandler<RealizarCompraComman
         };
 
         _uow.PedidoRepository.Adicionar(pedido);
-        await _uow.CommitAsync(cancellationToken);
 
-        try
-        {
-            await _publisher.Publish(new PedidoRealizadoEvento(
-                PedidoId: pedido.Id,
-                UsuarioId: pedido.UsuarioId,
-                JogoId: jogo.Id,
-                NomeJogo: jogo.Nome,
-                Preco: jogo.Preco,
-                RealizadoEmUtc: pedido.CriadoEm,
-                CorrelationId: correlationId
-            ), cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Falha ao publicar PedidoRealizadoEvento para PedidoId {PedidoId}. Pedido já foi persistido.", pedido.Id);
-        }
+        await _publisher.Publish(new PedidoRealizadoEvento(
+            PedidoId: pedido.Id,
+            UsuarioId: pedido.UsuarioId,
+            JogoId: jogo.Id,
+            NomeJogo: jogo.Nome,
+            Preco: jogo.Preco,
+            RealizadoEmUtc: pedido.CriadoEm,
+            CorrelationId: correlationId
+        ), cancellationToken);
+
+        await _uow.CommitAsync(cancellationToken);
 
         return new RealizarCompraResponse(pedido.Id, jogo.Id, jogo.Nome, jogo.Preco, pedido.Status.ToString());
     }
